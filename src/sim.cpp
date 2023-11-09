@@ -1,4 +1,5 @@
 #include "sim.hpp"
+#include <array>
 #include <madrona/mw_gpu_entry.hpp>
 
 using namespace madrona;
@@ -12,7 +13,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 
     registry.registerComponent<Reset>();
     registry.registerComponent<Action>();
-    registry.registerComponent<GridPos>();
+    registry.registerComponent<Pose>();
     registry.registerComponent<Reward>();
     registry.registerComponent<Done>();
     registry.registerComponent<CurStep>();
@@ -22,101 +23,53 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     // Export tensors for pytorch
     registry.exportColumn<Agent, Reset>((uint32_t)ExportID::Reset);
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
-    registry.exportColumn<Agent, GridPos>((uint32_t)ExportID::GridPos);
+    registry.exportColumn<Agent, Pose>((uint32_t)ExportID::Pose);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
 }
 
-inline void tick(Engine &ctx,
-                 Action &action,
-                 Reset &reset,
-                 GridPos &grid_pos,
-                 Reward &reward,
-                 Done &done,
-                 CurStep &episode_step)
-{
-    const GridState *grid = ctx.data().grid;
+inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
+                          CurStep &episodeStep) {
+    bool episodeDone{false};
 
-    GridPos new_pos = grid_pos;
-
-    switch (action) {
-        case Action::Up: {
-            new_pos.y += 1;
-        } break;
-        case Action::Down: {
-            new_pos.y -= 1;
-        } break;
-        case Action::Left: {
-            new_pos.x -= 1;
-        } break;
-        case Action::Right: {
-            new_pos.x += 1;
-        } break;
-        default: break;
-    }
-
-    action = Action::None;
-
-    if (new_pos.x < 0) {
-        new_pos.x = 0;
-    }
-
-    if (new_pos.x >= grid->width) {
-        new_pos.x = grid->width - 1;
-    }
-
-    if (new_pos.y < 0) {
-        new_pos.y = 0;
-    }
-
-    if (new_pos.y >= grid->height) {
-        new_pos.y = grid->height -1;
-    }
-
-
-    {
-        const Cell &new_cell = grid->cells[new_pos.y * grid->width + new_pos.x];
-
-        if ((new_cell.flags & CellFlag::Wall)) {
-            new_pos = grid_pos;
-        }
-    }
-
-    const Cell &cur_cell = grid->cells[new_pos.y * grid->width + new_pos.x];
-
-    bool episode_done = false;
     if (reset.resetNow != 0) {
         reset.resetNow = 0;
-        episode_done = true;
+        episodeDone = true;
     }
 
-    if ((cur_cell.flags & CellFlag::End)) {
-        episode_done = true;
+    auto &currentStep = episodeStep.step;
+
+    if (currentStep == ctx.data().maxEpisodeLength - 1) {
+        episodeDone = true;
     }
 
-    uint32_t cur_step = episode_step.step;
-
-    if (cur_step == ctx.data().maxEpisodeLength - 1) {
-        episode_done = true;
+    if (not episodeDone) {
+        ++currentStep;
+        return;
     }
 
-    if (episode_done) {
-        done.episodeDone = 1.f;
+    done.episodeDone = 1.f;
+    done.episodeDone = 0.f;
+    ++currentStep;
+}
 
-        new_pos = GridPos {
-            grid->startY,
-            grid->startX,
-        };
-
-        episode_step.step = 0;
-    } else {
-        done.episodeDone = 0.f;
-        episode_step.step = cur_step + 1;
+inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
+    if (action == Action::Wait) {
+        return;
     }
 
-    // Commit new position
-    grid_pos = new_pos;
-    reward.r = cur_cell.reward;
+    if (action == Action::RotateClockwise ||
+        action == Action::RotateCounterCockwise) {
+        // TODO
+    }
+
+    assert(action == Action::Move);
+
+    const std::array<Location, 4> headingToOffsets{
+        {{-1, 0}, {0, 1}, {0, 1}, {-1, 0}}};
+    auto &offset = headingToOffsets[static_cast<std::size_t>(pose.heading)];
+    pose.location.row += offset.row;
+    pose.location.col += offset.col;
 }
 
 #ifdef MADRONA_GPU_MODE
@@ -136,15 +89,20 @@ TaskGraph::NodeID queueSortByWorld(TaskGraph::Builder &builder,
 
 void Sim::setupTasks(TaskGraphBuilder &builder, const Config &)
 {
-    auto tick_node = builder.addToGraph<ParallelForNode<Engine, tick,
-        Action, Reset, GridPos, Reward, Done, CurStep>>({});
+    auto actionSystem =
+        builder
+            .addToGraph<ParallelForNode<Engine, performAction, Action, Pose>>(
+                {});
+
+    // TODO: Compute CollisionState
+    // TODO: Compute Reward
+    // TODO: Manage episode
 
 #ifdef MADRONA_GPU_MODE
-    auto sort_agents = queueSortByWorld<Agent>(
-        builder, {tick_node});
+    auto sort_agents = queueSortByWorld<Agent>(builder, {actionSystem});
     (void)sort_agents;
 #else
-    (void)tick_node;
+    (void)actionSystem;
 #endif
 }
 
@@ -156,10 +114,6 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
 {
     Entity agent = ctx.makeEntity<Agent>();
     ctx.get<Action>(agent) = Action::None;
-    ctx.get<GridPos>(agent) = GridPos {
-        grid->startY,
-        grid->startX,
-    };
     ctx.get<Reward>(agent).r = 0.f;
     ctx.get<Done>(agent).episodeDone = 0.f;
     ctx.get<CurStep>(agent).step = 0;

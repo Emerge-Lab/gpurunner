@@ -143,8 +143,6 @@ NB_MODULE(_gridworld_madrona, m) {
                 .gpuID = (int)gpu_id,
             }, GridState {
                 .cells = cells,
-                .startX = (int32_t)start_x,
-                .startY = (int32_t)start_y,
                 .width = (int32_t)grid_x,
                 .height = (int32_t)grid_y,
             });

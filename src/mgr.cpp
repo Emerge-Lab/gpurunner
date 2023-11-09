@@ -252,8 +252,6 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         GridState *cpu_grid = (GridState *)grid_data;
         *cpu_grid = GridState {
             .cells = cpu_cell_data,
-            .startX = src_grid.startX,
-            .startY = src_grid.startY,
             .width = src_grid.width,
             .height = src_grid.height,
         };
@@ -284,8 +282,6 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         Cell *gpu_cell_data = (Cell *)(grid_data + sizeof(GridState));
         GridState grid_staging {
             .cells = gpu_cell_data,
-            .startX = src_grid.startX,
-            .startY = src_grid.startY,
             .width = src_grid.width,
             .height = src_grid.height,
         };
@@ -348,8 +344,8 @@ Tensor Manager::actionTensor() const
 
 Tensor Manager::observationTensor() const
 {
-    return impl_->exportTensor(ExportID::GridPos, Tensor::ElementType::Int32,
-        {impl_->cfg.numWorlds, 2});
+    return impl_->exportTensor(ExportID::Pose, Tensor::ElementType::Int32,
+        {impl_->cfg.numWorlds, 3});
 }
 
 Tensor Manager::rewardTensor() const

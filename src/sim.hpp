@@ -9,20 +9,15 @@
 
 namespace madgrid {
 
-// 3D Position & Quaternion Rotation
-// These classes are defined in madrona/components.hpp
-using madrona::base::Position;
-using madrona::base::Rotation;
-
 class Engine;
 
 enum class ExportID : uint32_t {
-    Reset,
-    Action,
-    GridPos,
-    Reward,
-    Done,
-    NumExports,
+  Reset,
+  Action,
+  Pose,
+  Reward,
+  Done,
+  NumExports,
 };
 
 struct Reset {
@@ -30,16 +25,28 @@ struct Reset {
 };
 
 enum class Action : int32_t {
-    Up    = 0,
-    Down  = 1,
-    Left  = 2,
-    Right = 3,
-    None,
+  None,
+  Move,
+  RotateClockwise,
+  RotateCounterCockwise,
+  Wait,
 };
 
-struct GridPos {
-    int32_t y;
-    int32_t x;
+enum class Heading : int32_t {
+  Up = 0,
+  Right = 1,
+  Down = 2,
+  Left = 3,
+};
+
+struct Location {
+    int32_t row;
+    int32_t col;
+};
+
+struct Pose {
+    Location location;
+    Heading heading;
 };
 
 struct Reward {
@@ -54,14 +61,15 @@ struct CurStep {
     uint32_t step;
 };
 
-struct Agent : public madrona::Archetype<
-    Reset,
-    Action,
-    GridPos,
-    Reward,
-    Done,
-    CurStep
-> {};
+enum class CollisionState {
+  OutOfBounds,
+  WallCollision,
+  VertexCollision,
+  EdgeCollision
+};
+
+struct Agent : public madrona::Archetype<Reset, Action, Pose, Reward, Done,
+                                         CurStep, CollisionState> {};
 
 struct Sim : public madrona::WorldBase {
     struct Config {
