@@ -23,10 +23,16 @@ class GridWorld:
                 start_x = start_cell[1],
                 start_y = start_cell[0],
                 max_episode_length = 0, # No max
-                exec_mode = madrona.ExecMode.CPU,
+                exec_mode = madrona.ExecMode.CUDA,
                 num_worlds = num_worlds,
                 gpu_id = 0,
             )
+
+        self.force_reset = self.sim.reset_tensor().to_torch()
+        self.actions = self.sim.action_tensor().to_torch()
+        self.observations = self.sim.observation_tensor().to_torch()
+        self.rewards = self.sim.reward_tensor().to_torch()
+        self.dones = self.sim.done_tensor().to_torch()
 
     def step(self):
         self.sim.step()
