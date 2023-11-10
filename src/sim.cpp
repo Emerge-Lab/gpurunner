@@ -17,6 +17,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<Reward>();
     registry.registerComponent<Done>();
     registry.registerComponent<CurStep>();
+    registry.registerComponent<CollisionState>();
 
     registry.registerArchetype<Agent>();
 
@@ -113,7 +114,10 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
     Entity agent = ctx.makeEntity<Agent>();
-    ctx.get<Action>(agent) = Action::None;
+    // TODO: Is there a need to introduce an Action::None so as to distinguish
+    // between the environment issuing a WAIT and the learning component issuing
+    // a WAIT
+    ctx.get<Action>(agent) = Action::Wait;
     ctx.get<Reward>(agent).r = 0.f;
     ctx.get<Done>(agent).episodeDone = 0.f;
     ctx.get<CurStep>(agent).step = 0;
