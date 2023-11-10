@@ -27,10 +27,7 @@ pygame.display.set_caption('Tensor Map Renderer')
 # Colors
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
 font = pygame.font.Font(None, 12)
 
 # Example tensors
@@ -87,9 +84,9 @@ def draw_map():
 
                       # Draw agents and their indices
             if agent_tensor[i, j] != 0:
-                color = [RED, GREEN, BLUE, YELLOW][agent_tensor[i, j] - 1]
+                color = BLUE
                 draw_triangle(rect.center, min(cell_width, cell_height) // 4, agent_tensor[i, j], color)
-                index_text = font.render(str(agent_indices[i, j]), True, BLACK)
+                index_text = font.render(str(agent_indices[i, j]), True, WHITE)
                 text_rect = index_text.get_rect(center=rect.center)
                 screen.blit(index_text, text_rect)
 
