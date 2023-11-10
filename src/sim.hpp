@@ -25,7 +25,6 @@ struct Reset {
 };
 
 enum class Action : int32_t {
-  None,
   Move,
   RotateClockwise,
   RotateCounterCockwise,
