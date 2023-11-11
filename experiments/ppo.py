@@ -54,10 +54,11 @@ policy_kwargs = dict(
 
 if __name__ == "__main__":
 
-    num_worlds = 1
-    map_shape = (32, 32)
-
-    env = GridWorldEnv(num_worlds, 2, map_shape=map_shape)
+    env = GridWorldEnv(
+        num_worlds=1, 
+        max_num_agents=2, 
+        map_shape=(32, 32),
+    )
 
     model = PPO(
         "MultiInputPolicy",
@@ -66,4 +67,4 @@ if __name__ == "__main__":
         tensorboard_log="./ppo_gridworld_tensorboard/",
         policy_kwargs=policy_kwargs,
     )
-    model.learn(total_timesteps=10000)  
+    model.learn(total_timesteps=1000)  
