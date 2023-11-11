@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     env = GridWorldEnv(
         num_worlds=1, 
-        max_num_agents=2, 
+        max_num_agents=20, 
         map_shape=(32, 32),
     )
 

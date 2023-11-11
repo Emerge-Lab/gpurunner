@@ -47,22 +47,29 @@ class GridWorldEnv(gym.Env):
         # Define observation space
         self.observation_space = spaces.Dict(
             {
-                "image": spaces.Box(0, 1, shape=(len(MapTiles),) + tuple(self.shape), dtype=int),
+                "image": spaces.Box(
+                    0, 1,
+                    shape=(self.n_worlds, len(MapTiles),) + tuple(self.shape),
+                    dtype=int),
                 # "agent_locs": spaces.Box(0, max(self.shape) - 1, shape=(self.max_n_agents, 2), dtype=int),
                 # "agent_goals": spaces.Box(0, max(self.shape) - 1, shape=(self.max_n_agents, 2), dtype=int),
-                "vector": spaces.Box(0, max(self.shape) - 1, shape=(self.max_n_agents * 4,), dtype=int),
+                "vector": spaces.Box(
+                    0, max(self.shape) - 1,
+                    shape=(self.n_worlds, self.max_n_agents * 4,), dtype=int),
             }
         )
         # Define action space
         # We have 4 actions per agent (F, RL, RR, W)
-        self.action_space = spaces.MultiDiscrete((self.max_n_agents, 4))
+        self.action_space = spaces.MultiDiscrete((4,) * self.max_n_agents)
 
         self.force_reset = self.sim.reset_tensor().to_torch()
         self.actions = self.sim.action_tensor().to_torch()
+        # list of (row_pos, col_pos, orientation) tuples, n_agents many
         self.observations = self.sim.observation_tensor().to_torch()
         self.rewards = self.sim.reward_tensor().to_torch()
         self.dones = self.sim.done_tensor().to_torch()
         self.map = self.sim.map_tensor().to_torch()
+        self.tasks = self.sim.task_tensor().to_torch()
 
     def get_obs(self):
         assert self.map.shape[0] == self.n_worlds
@@ -70,7 +77,6 @@ class GridWorldEnv(gym.Env):
         im = torch.eye(len(MapTiles))[im]
         im = rearrange(im, 'b h w c -> b c h w')
         vec = torch.zeros(self.n_worlds, self.max_n_agents * 4)
-        breakpoint()
         return {
             'image': im,
             'vector': vec,
@@ -79,16 +85,25 @@ class GridWorldEnv(gym.Env):
     def step(self, actions: torch.Tensor):
         """Take a step in the sim."""
 
-        self.sim.action_tensor().to_torch()[:, 0] = actions
+        if self.force_reset.any():
+            breakpoint()
+        breakpoint()
+        self.sim.action_tensor().to_torch()[:] = actions
         self.sim.step()
         obs = self.get_obs()
         reward = 0
         done = False
         info = {}
-        return 
+        truncated = False
+        breakpoint()
+
+        #TODO: Per-world reset where done is True
+
+        return obs, reward, done, info, truncated
 
     def reset(self, seed): 
-        self.sim.reset_tensor()
+        self.force_reset[:] = True
+        self.sim.step()
         obs = self.get_obs()
         return obs
 
@@ -97,9 +112,14 @@ if __name__ == "__main__":
 
     env = GridWorldEnv(
         num_worlds=1, 
-        max_num_agents=1, 
+        max_num_agents=20, 
         map_shape=(32, 32),
     )
      
-    for i in range(5):
-        env.step(torch.Tensor([1]))
+    seed = 0
+    done = False
+    obs = env.reset(seed)
+    while not done:
+        actions = torch.Tensor(env.action_space.sample())
+        obs, reward, done, info, truncated = env.step(actions)
+        print(obs)
