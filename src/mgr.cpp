@@ -287,6 +287,13 @@ Tensor Manager::mapTensor() const{
                                {impl_->cfg.numWorlds, 1024});
 }
 
+
+Tensor Manager::taskTensor() const
+{
+    return impl_->exportTensor(ExportID::Task, Tensor::ElementType::Int32,
+                               {impl_->cfg.numWorlds, 20, 1});
+}
+
 Tensor Manager::resetTensor() const
 {
     return impl_->exportTensor(ExportID::Reset, Tensor::ElementType::Int32,

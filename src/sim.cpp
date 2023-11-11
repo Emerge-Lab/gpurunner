@@ -2,8 +2,7 @@
 #include <array>
 #include <madrona/mw_gpu_entry.hpp>
 #include "level_gen.cpp"
-
-#include <iostream>
+#include "types.hpp"
 
 using namespace madrona;
 using namespace madrona::math;
@@ -21,10 +20,11 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.registerComponent<Done>();
     registry.registerComponent<CurStep>();
     registry.registerComponent<CollisionState>();
-
+    registry.registerComponent<CurTask>();
     registry.registerArchetype<Agent>();
 
     registry.registerSingleton<Map>();
+    registry.registerSingleton<TaskCtr>();
 
     // Export tensors for pytorch
     registry.exportColumn<Agent, Reset>((uint32_t)ExportID::Reset);
@@ -32,13 +32,12 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, Pose>((uint32_t)ExportID::Pose);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
-
+    registry.exportColumn<Agent, CurTask>((int32_t)ExportID::Task);
     registry.exportSingleton<Map>((uint32_t)ExportID::Map);
 }
 
 inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
                           CurStep &episodeStep) {
-    printf("Reset issued\n");
     bool episodeDone{false};
 
     if (reset.resetNow != 0) {
@@ -66,45 +65,45 @@ inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
 }
 
 inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
-  printf("action=");
-    switch (action) {
-    case Action::Move:
-      printf("move");
-      break;
-    case Action::RotateClockwise:
-      printf("rotate lcockwise");
-      break;
-    case Action::RotateCounterCockwise:
-      printf("rotate counter clockwise");
-      break;
-    case Action::Wait:
-      printf("wait");
-      break;
-    default:
-      printf("none");
-    }
+//   printf("action=");
+//     switch (action) {
+//     case Action::Move:
+//       printf("move");
+//       break;
+//     case Action::RotateClockwise:
+//       printf("rotate lcockwise");
+//       break;
+//     case Action::RotateCounterCockwise:
+//       printf("rotate counter clockwise");
+//       break;
+//     case Action::Wait:
+//       printf("wait");
+//       break;
+//     default:
+//       printf("none");
+//     }
 
-    printf("\n");
+//     printf("\n");
   
-  printf("pose.heading=");
-    switch (pose.heading) {
-    case Heading::Up:
-      printf("up");
-      break;
-    case Heading::Right:
-      printf("right");
-      break;
-    case Heading::Down:
-      printf("down");
-      break;
-    case Heading::Left:
-      printf("left");
-      break;
-    default:
-      printf("none");
-    }
+//   printf("pose.heading=");
+//     switch (pose.heading) {
+//     case Heading::Up:
+//       printf("up");
+//       break;
+//     case Heading::Right:
+//       printf("right");
+//       break;
+//     case Heading::Down:
+//       printf("down");
+//       break;
+//     case Heading::Left:
+//       printf("left");
+//       break;
+//     default:
+//       printf("none");
+//     }
 
-    printf("\n");
+//     printf("\n");
 	   
     if (action == Action::Wait) {
         return;
@@ -175,6 +174,27 @@ TaskGraph::NodeID queueSortByWorld(TaskGraph::Builder &builder,
     return post_sort_reset_tmp;
 }
 #endif
+
+
+inline void manageTasks(Engine &ctx,Pose pose,CurTask &curTask, TaskCtr &taskCtr,
+                        Map &map, Reward &reward) {
+    auto taskList = random20;
+
+    auto int_pose = pose.location.row * 32 + pose.location.col;
+    if(int_pose == curTask.task) {
+      reward.r += 1;
+      if(taskCtr.ctr >= taskList.size())
+        curTask.task = -1;
+      else{
+        curTask.task = taskList[taskCtr.ctr++]; // Dangerous
+      }
+    }
+    else
+    {
+        // reward.r += -1.0 * (abs(int_pose - curTask.task) / (32*32));
+    }
+}
+
 
 inline void debug(Engine & /* unused */, Pose &pose) {
     printf("heading %d\n", static_cast<int32_t>(pose.heading));
