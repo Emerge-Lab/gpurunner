@@ -64,10 +64,42 @@ inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
         return;
     }
 
-    if (action == Action::RotateClockwise ||
-        action == Action::RotateCounterCockwise) {
-        // TODO
-        return;
+    if (action == Action::RotateClockwise) {
+      switch (pose.heading) {
+      case Heading::Up:
+	pose.heading = Heading::Right;
+	break;
+      case Heading::Right:
+	pose.heading = Heading::Down;
+	break;
+      case Heading::Down:
+	pose.heading = Heading::Left;
+	break;
+      case Heading::Left:
+	pose.heading = Heading::Up;
+	break;
+      }
+
+      return;
+    }
+
+    if (action == Action::RotateCounterCockwise) {
+      switch (pose.heading) {
+      case Heading::Up:
+	pose.heading = Heading::Left;
+	break;
+      case Heading::Right:
+	pose.heading = Heading::Up;
+	break;
+      case Heading::Down:
+	pose.heading = Heading::Right;
+	break;
+      case Heading::Left:
+	pose.heading = Heading::Down;
+	break;
+      }
+
+      return;
     }
 
     assert(action == Action::Move);
