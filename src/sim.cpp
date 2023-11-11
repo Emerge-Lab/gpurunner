@@ -32,7 +32,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
     registry.exportColumn<Agent, Pose>((uint32_t)ExportID::Pose);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
-    registry.exportColumn<Agent, CurTask>((int32_t)ExportID::Task);
+    registry.exportColumn<Agent, CurTask>((uint32_t)ExportID::CurTask);
     registry.exportSingleton<Map>((uint32_t)ExportID::Map);
 }
 

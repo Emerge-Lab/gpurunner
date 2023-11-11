@@ -18,7 +18,7 @@ enum class ExportID : uint32_t {
   Reward,
   Done,
   Map,
-  Task,
+  CurTask,
   NumExports
 };
 
