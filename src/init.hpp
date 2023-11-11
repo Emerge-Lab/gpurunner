@@ -3,6 +3,7 @@
 #include <madrona/sync.hpp>
 
 #include "grid.hpp"
+#include "types.hpp"
 
 namespace madgrid {
 
@@ -12,7 +13,9 @@ struct EpisodeManager {
 
 struct WorldInit {
     EpisodeManager *episodeMgr;
-    const GridState *grid;
+    Domain domain;
+    Agents agents;
+    Tasks tasks;
 };
 
 }

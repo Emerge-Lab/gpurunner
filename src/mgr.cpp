@@ -24,15 +24,12 @@ namespace madgrid {
 struct Manager::Impl {
     Config cfg;
     EpisodeManager *episodeMgr;
-    GridState *gridData;
     Reset *worldResetBuffer;
 
     inline Impl(const Config &c,
-                EpisodeManager *ep_mgr,
-                GridState *grid_data)
+                EpisodeManager *ep_mgr)
         : cfg(c),
           episodeMgr(ep_mgr),
-          gridData(grid_data),
           worldResetBuffer(nullptr)
     {}
 
@@ -49,7 +46,7 @@ struct Manager::Impl {
     virtual Tensor exportTensor(ExportID slot, Tensor::ElementType type,
                                 Span<const int64_t> dims) = 0;
 
-    static inline Impl * init(const Config &cfg, const GridState &src_grid);
+    static inline Impl * init(const Config &cfg);
 };
 
 struct Manager::CPUImpl final : Manager::Impl {
@@ -59,9 +56,8 @@ struct Manager::CPUImpl final : Manager::Impl {
     inline CPUImpl(const Manager::Config &mgr_cfg,
                    const Sim::Config &sim_cfg,
                    EpisodeManager *episode_mgr,
-                   GridState *grid_data,
                    WorldInit *world_inits)
-        : Impl(mgr_cfg, episode_mgr, grid_data),
+        : Impl(mgr_cfg, episode_mgr),
           cpuExec({
                   .numWorlds = mgr_cfg.numWorlds,
                   .numExportedBuffers = (uint32_t)ExportID::NumExports,
@@ -73,7 +69,6 @@ struct Manager::CPUImpl final : Manager::Impl {
 
     inline virtual ~CPUImpl() final {
         delete episodeMgr;
-        free(gridData);
     }
 
     inline virtual void run() final { cpuExec.run(); }
@@ -106,9 +101,8 @@ struct Manager::GPUImpl final : Manager::Impl {
     inline GPUImpl(const Manager::Config &mgr_cfg,
                    const Sim::Config &sim_cfg,
                    EpisodeManager *episode_mgr,
-                   GridState *grid_data,
                    WorldInit *world_inits)
-        : Impl(mgr_cfg, episode_mgr, grid_data),
+        : Impl(mgr_cfg, episode_mgr),
           gpuExec({
                   .worldInitPtr = world_inits,
                   .numWorldInitBytes = sizeof(WorldInit),
@@ -131,7 +125,6 @@ struct Manager::GPUImpl final : Manager::Impl {
 
     inline virtual ~GPUImpl() final {
         REQ_CUDA(cudaFree(episodeMgr));
-        REQ_CUDA(cudaFree(gridData));
     }
 
     inline virtual void run() final { gpuExec.run(); }
@@ -213,25 +206,24 @@ struct Manager::GPUImpl final : Manager::Impl {
 #endif
 
 static HeapArray<WorldInit> setupWorldInitData(int64_t num_worlds,
-                                               EpisodeManager *episode_mgr,
-                                               const GridState *grid)
-{
+                                               EpisodeManager *episode_mgr) {
     HeapArray<WorldInit> world_inits(num_worlds);
 
     for (int64_t i = 0; i < num_worlds; i++) {
         world_inits[i] = WorldInit {
             episode_mgr,
-            grid,
+            Domain::Random,
+	    Agents::Random20,
+	    Tasks::Tasks20
         };
     }
 
     return world_inits;
 }
 
-Manager::Impl * Manager::Impl::init(const Config &cfg,
-                                    const GridState &src_grid)
-{
-    static_assert(sizeof(GridState) % alignof(Cell) == 0);
+Manager::Impl * Manager::Impl::init(const Config &cfg) {
+    // TODO: ensure invariant holds
+    // static_assert(sizeof(GridState) % alignof(Cell) == 0);
 
     Sim::Config sim_cfg {
         .maxEpisodeLength = cfg.maxEpisodeLength,
@@ -242,27 +234,10 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
     case ExecMode::CPU: {
         EpisodeManager *episode_mgr = new EpisodeManager { 0 };
 
-        uint64_t num_cell_bytes =
-            sizeof(Cell) * src_grid.width * src_grid.height;
-
-        auto *grid_data =
-            (char *)malloc(sizeof(GridState) + num_cell_bytes);
-        Cell *cpu_cell_data = (Cell *)(grid_data + sizeof(GridState));
-
-        GridState *cpu_grid = (GridState *)grid_data;
-        *cpu_grid = GridState {
-            .cells = cpu_cell_data,
-            .width = src_grid.width,
-            .height = src_grid.height,
-        };
-
-        memcpy(cpu_cell_data, src_grid.cells, num_cell_bytes);
-
         HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds,
-            episode_mgr, cpu_grid);
+            episode_mgr);
 
-        return new CPUImpl(cfg, sim_cfg, episode_mgr, cpu_grid,
-                           world_inits.data());
+        return new CPUImpl(cfg, sim_cfg, episode_mgr, world_inits.data());
     } break;
     case ExecMode::CUDA: {
 #ifndef MADRONA_CUDA_SUPPORT
@@ -273,40 +248,17 @@ Manager::Impl * Manager::Impl::init(const Config &cfg,
         // Set the current episode count to 0
         REQ_CUDA(cudaMemset(episode_mgr, 0, sizeof(EpisodeManager)));
 
-        uint64_t num_cell_bytes =
-            sizeof(Cell) * src_grid.width * src_grid.height;
+        HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds, episode_mgr);
 
-        auto *grid_data =
-            (char *)cu::allocGPU(sizeof(GridState) + num_cell_bytes);
-
-        Cell *gpu_cell_data = (Cell *)(grid_data + sizeof(GridState));
-        GridState grid_staging {
-            .cells = gpu_cell_data,
-            .width = src_grid.width,
-            .height = src_grid.height,
-        };
-
-        cudaMemcpy(grid_data, &grid_staging, sizeof(GridState),
-                   cudaMemcpyHostToDevice);
-        cudaMemcpy(gpu_cell_data, src_grid.cells, num_cell_bytes,
-                   cudaMemcpyHostToDevice);
-
-        GridState *gpu_grid = (GridState *)grid_data;
-
-        HeapArray<WorldInit> world_inits = setupWorldInitData(cfg.numWorlds,
-            episode_mgr, gpu_grid);
-
-        return new GPUImpl(cfg, sim_cfg, episode_mgr, gpu_grid,
-                           world_inits.data());
+        return new GPUImpl(cfg, sim_cfg, episode_mgr, world_inits.data());
 #endif
     } break;
     default: return nullptr;
     }
 }
 
-Manager::Manager(const Config &cfg,
-                 const GridState &src_grid)
-    : impl_(Impl::init(cfg, src_grid))
+Manager::Manager(const Config &cfg) 
+  : impl_(Impl::init(cfg))
 {
     for (int32_t i = 0; i < (int32_t)cfg.numWorlds; i++) {
         triggerReset(i);

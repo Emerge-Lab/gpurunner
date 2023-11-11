@@ -23,7 +23,7 @@ public:
         int gpuID;
     };
 
-    MGR_EXPORT Manager(const Config &cfg, const GridState &src_grid);
+    MGR_EXPORT Manager(const Config &cfg);
     MGR_EXPORT ~Manager();
 
     MGR_EXPORT void step();

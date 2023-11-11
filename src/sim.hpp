@@ -68,6 +68,7 @@ enum class CollisionState {
   EdgeCollision
 };
 
+
 struct Agent : public madrona::Archetype<Reset, Action, Pose, Reward, Done,
                                          CurStep, CollisionState> {};
 
@@ -86,7 +87,6 @@ struct Sim : public madrona::WorldBase {
     Sim(Engine &ctx, const Config &cfg, const WorldInit &init);
 
     EpisodeManager *episodeMgr;
-    const GridState *grid;
     uint32_t maxEpisodeLength;
 };
 

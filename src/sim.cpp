@@ -67,6 +67,7 @@ inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
     if (action == Action::RotateClockwise ||
         action == Action::RotateCounterCockwise) {
         // TODO
+        return;
     }
 
     assert(action == Action::Move);
@@ -115,7 +116,6 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &)
 Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
-      grid(init.grid),
       maxEpisodeLength(cfg.maxEpisodeLength)
 {
     Entity agent = ctx.makeEntity<Agent>();
@@ -127,8 +127,7 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     ctx.get<Done>(agent).episodeDone = 0.f;
     ctx.get<CurStep>(agent).step = 0;
 
-    createPersistentEntities(ctx);
-
+    createPersistentEntities(ctx, init.domain, init.agents, init.tasks);
 }
 
 MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Sim::Config, WorldInit);

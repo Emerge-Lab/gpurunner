@@ -77,11 +77,7 @@ NB_MODULE(_gridworld_madrona, m) {
                 .execMode = exec_mode,
                 .numWorlds = (uint32_t)num_worlds,
                 .gpuID = (int)gpu_id,
-            }, GridState {
-                .cells = cells,
-                .width = (int32_t)grid_x,
-                .height = (int32_t)grid_y,
-            });
+	      });
 
             delete[] cells;
         }, nb::arg("walls"),
