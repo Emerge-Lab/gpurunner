@@ -1,6 +1,7 @@
 #include "sim.hpp"
 #include <array>
 #include <madrona/mw_gpu_entry.hpp>
+#include "level_gen.cpp"
 
 using namespace madrona;
 using namespace madrona::math;
@@ -21,12 +22,16 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 
     registry.registerArchetype<Agent>();
 
+    registry.registerSingleton<Map>();
+
     // Export tensors for pytorch
     registry.exportColumn<Agent, Reset>((uint32_t)ExportID::Reset);
     registry.exportColumn<Agent, Action>((uint32_t)ExportID::Action);
     registry.exportColumn<Agent, Pose>((uint32_t)ExportID::Pose);
     registry.exportColumn<Agent, Reward>((uint32_t)ExportID::Reward);
     registry.exportColumn<Agent, Done>((uint32_t)ExportID::Done);
+
+    registry.exportSingleton<Map>((uint32_t)ExportID::Map);
 }
 
 inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
@@ -121,6 +126,9 @@ Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     ctx.get<Reward>(agent).r = 0.f;
     ctx.get<Done>(agent).episodeDone = 0.f;
     ctx.get<CurStep>(agent).step = 0;
+
+    createPersistentEntities(ctx);
+
 }
 
 MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Sim::Config, WorldInit);

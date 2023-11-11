@@ -330,6 +330,11 @@ void Manager::gpuRolloutStep(cudaStream_t strm, void **rollout_buffers)
 }
 #endif
 
+Tensor Manager::mapTensor() const{
+    return impl_->exportTensor(ExportID::Map, Tensor::ElementType::Int32,
+                               {impl_->cfg.numWorlds, 1024});
+}
+
 Tensor Manager::resetTensor() const
 {
     return impl_->exportTensor(ExportID::Reset, Tensor::ElementType::Int32,

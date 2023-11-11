@@ -11,50 +11,14 @@ static void setRewards(Cell *cells,
                        int64_t grid_x,
                        int64_t grid_y)
 {
-    for (int64_t y = 0; y < grid_y; y++) {
-        for (int64_t x = 0; x < grid_x; x++) {
-            int64_t idx = y * grid_x + x;
-            cells[idx].reward = static_cast<float>(rewards[idx]);
-        }
-    }
+    // for (int64_t y = 0; y < grid_y; y++) {
+    //     for (int64_t x = 0; x < grid_x; x++) {
+    //         int64_t idx = y * grid_x + x;
+    //         cells[idx].reward = static_cast<float>(rewards[idx]);
+    //     }
+    // }
 }
 
-template <typename T>
-static void tagWalls(Cell *cells,
-                     T *walls,
-                     int64_t grid_x,
-                     int64_t grid_y)
-{
-    for (int64_t y = 0; y < grid_y; y++) {
-        for (int64_t x = 0; x < grid_x; x++) {
-            int64_t idx = y * grid_x + x;
-
-            if (!!walls[idx]) {
-                cells[idx].flags |= CellFlag::Wall;
-            }
-        }
-    }
-}
-
-template <typename T>
-static void tagEnd(Cell *cells,
-                   T *end_cells,
-                   int64_t num_end_cells,
-                   int64_t grid_x,
-                   int64_t grid_y)
-{
-    for (int64_t c = 0; c < num_end_cells; c++) {
-        int64_t idx = c * 2;
-        int64_t y = static_cast<int64_t>(end_cells[idx]);
-        int64_t x = static_cast<int64_t>(end_cells[idx + 1]);
-
-        if (x >= grid_x || y >= grid_y) {
-            throw std::runtime_error("Out of range end cells");
-        }
-
-        cells[y * grid_x + x].flags |= CellFlag::End;
-    }
-}
 
 static Cell * setupCellData(
     const nb::ndarray<void, nb::shape<nb::any, nb::any>,
@@ -75,34 +39,6 @@ static Cell * setupCellData(
         setRewards(cells, (double *)rewards.data(), grid_x, grid_y);
     } else {
         throw std::runtime_error("rewards: unsupported input type");
-    }
-    
-    if (rewards.dtype() == nb::dtype<float>()) {
-        tagWalls(cells, (float *)walls.data(), grid_x, grid_y);
-    } else if (rewards.dtype() == nb::dtype<double>()) {
-        tagWalls(cells, (double *)walls.data(), grid_x, grid_y);
-    } else if (rewards.dtype() == nb::dtype<uint32_t>() ||
-               rewards.dtype() == nb::dtype<int32_t>()) {
-        tagWalls(cells, (uint32_t *)walls.data(), grid_x, grid_y);
-    } else if (rewards.dtype() == nb::dtype<uint64_t>() ||
-               rewards.dtype() == nb::dtype<int64_t>()) {
-        tagWalls(cells, (uint64_t *)walls.data(), grid_x, grid_y);
-    } else if (rewards.dtype() == nb::dtype<uint8_t>()) {
-        tagWalls(cells, (uint8_t *)walls.data(), grid_x, grid_y);
-    } else if (rewards.dtype() == nb::dtype<bool>()) {
-        tagWalls(cells, (bool *)walls.data(), grid_x, grid_y);
-    } else {
-        throw std::runtime_error("walls: unsupported input type");
-    }
-    
-    if (end_cells.dtype() == nb::dtype<uint32_t>() ||
-            end_cells.dtype() == nb::dtype<int32_t>()) {
-        tagEnd(cells, (uint32_t *)end_cells.data(),
-               (int64_t)end_cells.shape(0), grid_x, grid_y);
-    } else if (end_cells.dtype() == nb::dtype<uint64_t>() ||
-               end_cells.dtype() == nb::dtype<int64_t>()) {
-        tagEnd(cells, (uint64_t *)end_cells.data(),
-               (int64_t)end_cells.shape(0), grid_x, grid_y);
     }
 
     return cells;
@@ -159,6 +95,7 @@ NB_MODULE(_gridworld_madrona, m) {
            nb::arg("gpu_id") = -1)
         .def("step", &Manager::step)
         .def("reset_tensor", &Manager::resetTensor)
+        .def("map_tensor", &Manager::mapTensor)
         .def("action_tensor", &Manager::actionTensor)
         .def("observation_tensor", &Manager::observationTensor)
         .def("reward_tensor", &Manager::rewardTensor)

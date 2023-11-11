@@ -17,6 +17,10 @@ rewards[4,5] = 1
 grid_world = GridWorld(num_worlds, start_cell, end_cell, rewards, walls)
 #grid_world.vis_world()
 
+print(grid_world.map)
+print(grid_world.map.shape)
+
+
 print(grid_world.observations.shape)
 
 for i in range(5):

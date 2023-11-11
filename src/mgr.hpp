@@ -32,6 +32,7 @@ public:
     MGR_EXPORT void gpuRolloutStep(cudaStream_t strm, void **rollout_buffers);
 #endif
 
+    MGR_EXPORT madrona::py::Tensor mapTensor() const;
     MGR_EXPORT madrona::py::Tensor resetTensor() const;
     MGR_EXPORT madrona::py::Tensor actionTensor() const;
     MGR_EXPORT madrona::py::Tensor observationTensor() const;
