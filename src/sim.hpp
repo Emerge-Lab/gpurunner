@@ -18,7 +18,8 @@ enum class ExportID : uint32_t {
   Reward,
   Done,
   Map,
-  NumExports,
+  Task,
+  NumExports
 };
 
 struct Reset {
@@ -69,9 +70,13 @@ enum class CollisionState {
   EdgeCollision
 };
 
+struct CurTask{
+    int32_t task;
+};
+
 
 struct Agent : public madrona::Archetype<Reset, Action, Pose, Reward, Done,
-                                         CurStep, CollisionState> {};
+                                         CurStep, CurTask, CollisionState> {};
 
 struct Sim : public madrona::WorldBase {
     struct Config {

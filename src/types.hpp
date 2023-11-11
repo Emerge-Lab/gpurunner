@@ -17,6 +17,10 @@ enum class Tasks {
   Tasks20
 };
 
+struct TaskCtr {
+  uint32_t ctr;
+};
+
 enum class TaskAssignmentStrategy {
   Greedy,
   RoundRobin,

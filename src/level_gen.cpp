@@ -52,10 +52,14 @@ void createPersistentEntities(Engine &ctx, Domain domain, Agents agents, Tasks t
       ctx.singleton<Map>().map[i] = (int32_t)CellFlag::Source;
   }
 
+  ctx.singleton<TaskCtr>().ctr = 0;
+  
+
   createAgents(ctx);
 }
 
 static void resetPersistentEntities(Engine &ctx) {
+
   for (CountT idx = 0; idx < random20.size(); ++idx) {
     Entity agent = ctx.data().agents[idx];
     if (agent == Entity::none()) {
@@ -77,6 +81,8 @@ static void resetPersistentEntities(Engine &ctx) {
     ctx.get<Done>(agent).episodeDone = 0.f;
     ctx.get<CurStep>(agent).step = 0;
     ctx.get<CollisionState>(agent) = CollisionState::None;
+    ctx.get<CurTask>(agent).task = random20[idx];
+    ctx.singleton<TaskCtr>().ctr = idx;
   }
 }
 
