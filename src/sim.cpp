@@ -3,6 +3,8 @@
 #include <madrona/mw_gpu_entry.hpp>
 #include "level_gen.cpp"
 
+#include <iostream>
+
 using namespace madrona;
 using namespace madrona::math;
 
@@ -36,6 +38,7 @@ void Sim::registerTypes(ECSRegistry &registry, const Config &)
 
 inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
                           CurStep &episodeStep) {
+    printf("Reset issued\n");
     bool episodeDone{false};
 
     if (reset.resetNow != 0) {
@@ -50,16 +53,59 @@ inline void manageEpisode(Engine &ctx, Done &done, Reset &reset,
     }
 
     if (not episodeDone) {
+        done.episodeDone = 0.f;
         ++currentStep;
         return;
     }
 
+
     done.episodeDone = 1.f;
-    done.episodeDone = 0.f;
-    ++currentStep;
+    currentStep = 0;
+
+    generateWorld(ctx);
 }
 
 inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
+  printf("action=");
+    switch (action) {
+    case Action::Move:
+      printf("move");
+      break;
+    case Action::RotateClockwise:
+      printf("rotate lcockwise");
+      break;
+    case Action::RotateCounterCockwise:
+      printf("rotate counter clockwise");
+      break;
+    case Action::Wait:
+      printf("wait");
+      break;
+    default:
+      printf("none");
+    }
+
+    printf("\n");
+  
+  printf("pose.heading=");
+    switch (pose.heading) {
+    case Heading::Up:
+      printf("up");
+      break;
+    case Heading::Right:
+      printf("right");
+      break;
+    case Heading::Down:
+      printf("down");
+      break;
+    case Heading::Left:
+      printf("left");
+      break;
+    default:
+      printf("none");
+    }
+
+    printf("\n");
+	   
     if (action == Action::Wait) {
         return;
     }
@@ -106,7 +152,11 @@ inline void performAction(Engine & /* unused */, Action &action, Pose &pose) {
 
     const std::array<Location, 4> headingToOffsets{
         {{-1, 0}, {0, 1}, {0, 1}, {-1, 0}}};
-    auto &offset = headingToOffsets[static_cast<std::size_t>(pose.heading)];
+
+    
+    //    printf("heading %d\n", static_cast<int32_t>(pose.heading));
+    
+    auto &offset = headingToOffsets[static_cast<int32_t>(pose.heading)];
     pose.location.row += offset.row;
     pose.location.col += offset.col;
 }
@@ -126,6 +176,10 @@ TaskGraph::NodeID queueSortByWorld(TaskGraph::Builder &builder,
 }
 #endif
 
+inline void debug(Engine & /* unused */, Pose &pose) {
+    printf("heading %d\n", static_cast<int32_t>(pose.heading));
+}
+
 void Sim::setupTasks(TaskGraphBuilder &builder, const Config &)
 {
     auto actionSystem =
@@ -133,33 +187,26 @@ void Sim::setupTasks(TaskGraphBuilder &builder, const Config &)
             .addToGraph<ParallelForNode<Engine, performAction, Action, Pose>>(
                 {});
 
+    // auto dbgSystem = builder.addToGraph<ParallelForNode<Engine, debug, Pose>>({actionSystem});
+    auto episodeSystem = builder.addToGraph<ParallelForNode<Engine, manageEpisode, Done, Reset, CurStep>>({actionSystem});
+
     // TODO: Compute CollisionState
     // TODO: Compute Reward
-    // TODO: Manage episode
 
 #ifdef MADRONA_GPU_MODE
-    auto sort_agents = queueSortByWorld<Agent>(builder, {actionSystem});
+    auto sort_agents = queueSortByWorld<Agent>(builder, {episodeSystem});
     (void)sort_agents;
 #else
-    (void)actionSystem;
+    (void)episodeSystem;
 #endif
 }
 
 Sim::Sim(Engine &ctx, const Config &cfg, const WorldInit &init)
     : WorldBase(ctx),
       episodeMgr(init.episodeMgr),
-      maxEpisodeLength(cfg.maxEpisodeLength)
-{
-    Entity agent = ctx.makeEntity<Agent>();
-    // TODO: Is there a need to introduce an Action::None so as to distinguish
-    // between the environment issuing a WAIT and the learning component issuing
-    // a WAIT
-    ctx.get<Action>(agent) = Action::Wait;
-    ctx.get<Reward>(agent).r = 0.f;
-    ctx.get<Done>(agent).episodeDone = 0.f;
-    ctx.get<CurStep>(agent).step = 0;
-
+      maxEpisodeLength(cfg.maxEpisodeLength) {
     createPersistentEntities(ctx, init.domain, init.agents, init.tasks);
+    generateWorld(ctx);
 }
 
 MADRONA_BUILD_MWGPU_ENTRY(Engine, Sim, Sim::Config, WorldInit);

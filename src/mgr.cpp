@@ -345,6 +345,7 @@ void Manager::triggerReset(int32_t world_idx)
                    cudaMemcpyHostToDevice);
 #endif
     }  else {
+        printf("Triggered reset");
         *reset_ptr = reset;
     }
 }
