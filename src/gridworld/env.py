@@ -77,6 +77,7 @@ class GridWorldEnv(gym.Env):
         }
 
     def step(self, actions: torch.Tensor):
+        """Take a step in the sim."""
 
         self.sim.actions[:, 0] = torch.randint(0, 4, size=(num_worlds,))
         #self.sim.action_tensor = actions
@@ -95,7 +96,8 @@ class GridWorldEnv(gym.Env):
 
 if __name__ == "__main__":
 
-    env = GridWorld(num_worlds, 2, start_cell, end_cell, rewards, walls)
-    breakpoint()
-    env.step()
-
+     env = GridWorldEnv(
+        num_worlds=1, 
+        max_num_agents=2, 
+        map_shape=(32, 32),
+    )
