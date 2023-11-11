@@ -303,13 +303,13 @@ Tensor Manager::resetTensor() const
 Tensor Manager::actionTensor() const
 {
     return impl_->exportTensor(ExportID::Action, Tensor::ElementType::Int32,
-        {impl_->cfg.numWorlds, 1});
+        {impl_->cfg.numWorlds, 20, 1});
 }
 
 Tensor Manager::observationTensor() const
 {
     return impl_->exportTensor(ExportID::Pose, Tensor::ElementType::Int32,
-        {impl_->cfg.numWorlds, 3});
+        {impl_->cfg.numWorlds, 20, 3});
 }
 
 Tensor Manager::rewardTensor() const
