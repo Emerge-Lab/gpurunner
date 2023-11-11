@@ -5,22 +5,14 @@ from gridworld import GridWorld
 
 num_worlds = int(sys.argv[1])
 
-array_shape = [5,6]
-walls = np.zeros(array_shape)
-rewards = np.zeros(array_shape)
-walls[3,2:] = 1
-start_cell = np.array([4,5])
-end_cell = np.array([[4,5]])
-rewards[4,0] = -1
-rewards[4,5] = 1
-
-print("Here")
 grid_world = GridWorld(num_worlds)
 #grid_world.vis_world()
 
 print(grid_world.map)
 print(grid_world.map.shape)
 
+print(grid_world.tasks)
+print(grid_world.tasks.shape)
 
 print(grid_world.observations.shape)
 

@@ -7,7 +7,7 @@ __all__ = ['GridWorld']
 class GridWorld:
     def __init__(self, num_worlds):
         self.sim = GridWorldSimulator(
-                max_episode_length = 10, # No max
+                max_episode_length = 0, # No max
                 exec_mode = madrona.ExecMode.CPU,
                 num_worlds = num_worlds,
                 gpu_id = 0,
@@ -19,6 +19,7 @@ class GridWorld:
         self.rewards = self.sim.reward_tensor().to_torch()
         self.dones = self.sim.done_tensor().to_torch()
         self.map = self.sim.map_tensor().to_torch()
+        self.tasks = self.sim.task_tensor().to_torch()
 
     def step(self):
         self.sim.step()
