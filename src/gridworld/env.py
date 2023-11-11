@@ -79,8 +79,7 @@ class GridWorldEnv(gym.Env):
     def step(self, actions: torch.Tensor):
         """Take a step in the sim."""
 
-        self.sim.actions[:, 0] = torch.randint(0, 4, size=(num_worlds,))
-        #self.sim.action_tensor = actions
+        self.sim.action_tensor().to_torch()[:, 0] = actions
         self.sim.step()
         obs = self.get_obs()
         reward = 0
@@ -88,7 +87,7 @@ class GridWorldEnv(gym.Env):
         info = {}
         return 
 
-    def reset(self, seed):
+    def reset(self, seed): 
         self.sim.reset_tensor()
         obs = self.get_obs()
         return obs
@@ -96,8 +95,11 @@ class GridWorldEnv(gym.Env):
 
 if __name__ == "__main__":
 
-     env = GridWorldEnv(
+    env = GridWorldEnv(
         num_worlds=1, 
-        max_num_agents=2, 
+        max_num_agents=1, 
         map_shape=(32, 32),
     )
+     
+    for i in range(5):
+        env.step(torch.Tensor([1]))
