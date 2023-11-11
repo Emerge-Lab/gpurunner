@@ -290,7 +290,7 @@ Tensor Manager::mapTensor() const{
 
 Tensor Manager::taskTensor() const
 {
-    return impl_->exportTensor(ExportID::Task, Tensor::ElementType::Int32,
+    return impl_->exportTensor(ExportID::CurTask, Tensor::ElementType::Int32,
                                {impl_->cfg.numWorlds, 20, 1});
 }
 
