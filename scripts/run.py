@@ -14,7 +14,8 @@ end_cell = np.array([[4,5]])
 rewards[4,0] = -1
 rewards[4,5] = 1
 
-grid_world = GridWorld(num_worlds, start_cell, end_cell, rewards, walls)
+print("Here")
+grid_world = GridWorld(num_worlds)
 #grid_world.vis_world()
 
 print(grid_world.map)
@@ -29,6 +30,8 @@ for i in range(5):
 
     # "Policy"
     grid_world.actions[:, 0] = torch.randint(0, 4, size=(num_worlds,))
+    print(grid_world.actions[:,0])
+    # grid_world.actions[:, 0] = [1,]
     #grid_world.actions[:, 0] = 3 # right to win given (4, 4) start
 
     print("Actions:")

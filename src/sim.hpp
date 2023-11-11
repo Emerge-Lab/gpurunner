@@ -26,10 +26,10 @@ struct Reset {
 };
 
 enum class Action : int32_t {
-  Move,
-  RotateClockwise,
-  RotateCounterCockwise,
-  Wait,
+  Move=0,
+  RotateClockwise=1,
+  RotateCounterCockwise=2,
+  Wait=3,
 };
 
 enum class Heading : int32_t {
@@ -62,6 +62,7 @@ struct CurStep {
 };
 
 enum class CollisionState {
+  None,
   OutOfBounds,
   WallCollision,
   VertexCollision,
@@ -86,8 +87,11 @@ struct Sim : public madrona::WorldBase {
 
     Sim(Engine &ctx, const Config &cfg, const WorldInit &init);
 
+    static constexpr madrona::CountT maxAgentCount{100};
+
     EpisodeManager *episodeMgr;
     uint32_t maxEpisodeLength;
+    madrona::Entity agents[maxAgentCount];
 };
 
 class Engine : public ::madrona::CustomContext<Engine, Sim> {
